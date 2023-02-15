@@ -1,3 +1,7 @@
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
 use gdke_gui::{app::gdkeApp, Data};
 use poggers::{external::process::ExProcess, traits::Mem};
 
@@ -47,6 +51,7 @@ fn main() {
                     _ => {}
                 }
             }
+            std::thread::sleep(std::time::Duration::from_millis(1000));
         }
     });
 

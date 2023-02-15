@@ -1,4 +1,4 @@
-use std::{borrow::BorrowMut, ops::Deref, sync::mpsc::{Receiver, Sender}};
+use std::{borrow::BorrowMut, ops::Deref, sync::mpsc::{Receiver, Sender}, rc::Rc, cell::RefCell};
 
 use eframe::CreationContext;
 use egui::{TextStyle, TextEdit};
@@ -9,7 +9,7 @@ use crate::Data;
 #[derive(serde::Deserialize, serde::Serialize,Debug)]
 pub struct gdkeApp {
     #[serde(skip)]
-    procs : Vec<ExPartialProcess>,
+    procs : Rc<RefCell<Vec<ExPartialProcess>>>,
     #[serde(skip)]
     selected: Option<ExPartialProcess>,
     #[serde(skip)]
@@ -32,7 +32,7 @@ impl Default for gdkeApp {
             Vec::new()
         };
         Self {
-            procs,
+            procs: Rc::new(RefCell::new(procs)),
             selected: None,
             process: None,
             search_query: String::new(),
@@ -99,7 +99,16 @@ impl eframe::App for gdkeApp {
                 egui::TextEdit::singleline(&mut self.search_query).hint_text("Search...").show(ui);
                 let text_style = TextStyle::Body;
                 let row_height = ui.text_style_height(&text_style);
-                let filtered_procs = if self.search_query.is_empty() {self.procs.iter().collect::<Vec::<&ExPartialProcess>>()} else {self.procs.iter()
+                if ui.button("refresh processes").clicked() {
+                    procs.clone().borrow_mut().replace(if let Ok(procs) = ExProcess::get_processes() {
+                        procs
+                    } else {
+                        Vec::new()
+                    });
+                }
+                let mut procsrn = procs.clone();
+                let proca = procsrn.borrow();
+                let filtered_procs = if self.search_query.is_empty() {proca.iter().collect::<Vec::<&ExPartialProcess>>()} else {proca.iter()
                     .filter(|p| p.name.contains(&self.search_query) || p.pid.to_string().contains(&self.search_query)).collect()
                 };
                 let selval = selected.clone();
