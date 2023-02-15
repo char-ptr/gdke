@@ -6,4 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-poggers = {version = "0.1.1-dev3", path = "../poggers"}
+poggers = {version = "0.2.*", path = "../poggers"}
+
+[workspace]
+members = [
+    "gdke-gui",
+]
