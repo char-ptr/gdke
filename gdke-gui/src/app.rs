@@ -75,7 +75,7 @@ impl eframe::App for gdkeApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("GDKE");
             ui.separator();
-            egui::Window::new("Key")..open(awaiting).show(ctx, |ui| {
+            egui::Window::new("Key").open(awaiting).show(ctx, |ui| {
                 ui.label("Getting key, please wait...");
                 if !last_key.is_empty() {
                     let mut keyda = last_key.clone();
