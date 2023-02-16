@@ -2,6 +2,8 @@
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
 )]
+use std::error::Error;
+
 use gdke_gui::{app::gdkeApp, Data};
 use poggers::{external::process::ExProcess, traits::Mem};
 
@@ -19,32 +21,45 @@ fn main() {
                 match x {
                     Data::Pid(pid) => {
                         println!("Got pid: {}", pid);
+                        match (|| -> Result<(),Box<dyn Error>> {
 
-                        let proc = ExProcess::new_from_pid(pid).unwrap();
-                        let bm = proc.get_base_module().unwrap();
-                        for sig in SIGS.iter() {
-                            let res = unsafe {bm.scan_virtual(sig)};
-                            if let Some(x) = res {
-                                let data = unsafe {bm.resolve_relative_ptr(x+3, 4)};
-                                if let Ok(x) = data {
-                                    println!("found key @ {:X}", x);
-                                    let key_data = unsafe {bm.read_sized(x, 32)};
-                                    if let Ok(x) = key_data {
-                                        // print!("Key: ");
-                                        let mut data_string = String::new();
-                                        for i in x {
-                                            data_string.push_str(&format!("{:02X}", i));
+                            let proc = ExProcess::new_from_pid(pid)?;
+                            let bm = proc.get_base_module()?;
+                            for sig in SIGS.iter() {
+                                let res = unsafe {bm.scan_virtual(sig)};
+                                if let Some(x) = res {
+                                    let data = unsafe {bm.resolve_relative_ptr(x+3, 4)};
+                                    if let Ok(x) = data {
+                                        println!("found key @ {:X}", x);
+                                        let key_data = unsafe {bm.read_sized(x, 32)};
+                                        if let Ok(x) = key_data {
+                                            // print!("Key: ");
+                                            let mut data_string = String::new();
+                                            for i in x {
+                                                data_string.push_str(&format!("{:02X}", i));
+                                            }
+                                            println!("sending data {}", data_string);
+                                            stx.send(Data::Key(data_string)).unwrap();
+                                            return Ok(());
                                         }
-                                        println!("sending data {}", data_string);
-                                        stx.send(Data::Key(data_string)).unwrap();
-                                        break;
+                                    } else {
+                                        return Err("Unable to resolve lea relative ptr".into());
                                     }
+                                    // println!("Found sig: {:X}", x);
                                 } else {
-                                    println!("Unable to resolve lea relative ptr");
+                                    println!("Failed to find with sig: {}", sig);
+                                    // return Err("Failed to find with sig".into());
                                 }
-                                // println!("Found sig: {:X}", x);
-                            } else {
-                                println!("Failed to find with sig: {}", sig);
+                            }
+                            // Ok(())
+                            Err("Failed to find key".into())
+
+                        })() {
+                            Ok(_) => {},
+                            Err(er) => {
+                                println!("Error: {}", er);
+                                stx.send(Data::Failure(er.to_string())).unwrap();
+                                continue;
                             }
                         }
                     },

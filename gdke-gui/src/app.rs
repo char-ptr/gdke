@@ -6,22 +6,15 @@ use poggers::external::process::{ExPartialProcess, ExProcess};
 
 use crate::Data;
 
-#[derive(serde::Deserialize, serde::Serialize,Debug)]
+#[derive(Debug)]
 pub struct gdkeApp {
-    #[serde(skip)]
     procs : Rc<RefCell<Vec<ExPartialProcess>>>,
-    #[serde(skip)]
     selected: Option<ExPartialProcess>,
-    #[serde(skip)]
     awaiting: bool,
-    #[serde(skip)]
     last_key: String,
-    #[serde(skip)]
     process: Option<ExProcess>,
     search_query: String,
-    #[serde(skip)]
     rx: Option<std::sync::mpsc::Receiver<Data>>,
-    #[serde(skip)]
     tx: Option<std::sync::mpsc::Sender<Data>>
 }
 impl Default for gdkeApp {
@@ -45,27 +38,10 @@ impl Default for gdkeApp {
 }
 impl gdkeApp {
     pub fn new(cc: &CreationContext<'_>, rx: Receiver<Data>,tx: Sender<Data>) -> gdkeApp {
-        if let Some(stor) = cc.storage {
-            if let Some(data) = eframe::get_value::<Self>(stor, "d") {
-                println!("Loaded data: {:?}", data);
-                return Self {
-                    tx: Some(tx),
-                    rx: Some(rx),
-                    ..Default::default()
-                }
-            } else {
-                Self {
-                    tx: Some(tx),
-                    rx: Some(rx),
-                    ..Default::default()
-                }
-            }
-        } else {
-            Self {
-                tx: Some(tx),
-                rx: Some(rx),
-                ..Default::default()
-            }
+        Self {
+            tx: Some(tx),
+            rx: Some(rx),
+            ..Default::default()
         }
     }
 }
@@ -75,8 +51,9 @@ impl eframe::App for gdkeApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("GDKE");
             ui.separator();
-            egui::Window::new("Key").open(awaiting).show(ctx, |ui| {
+            egui::Window::new("Key").collapsible(false).resizable(true).open(awaiting).show(ctx, |ui| {
                 ui.label("Getting key, please wait...");
+
                 if !last_key.is_empty() {
                     let mut keyda = last_key.clone();
                     TextEdit::singleline(&mut keyda).show(ui);
@@ -87,10 +64,18 @@ impl eframe::App for gdkeApp {
                         Data::Key(key) => {
                             println!("Got key: {}", key);
                             *last_key = key;
+                        },
+                        Data::Failure(e) => {
+                            println!("Failed to get key");
+                            *last_key = format!("Failed to get key: {}", e);
                         }
-                        _ =>{ }
+                        Data::Pid(_) => {unreachable!()}
                     }
-                };
+                } else{
+                    ui.centered_and_justified(|ui| {
+                        ui.spinner();
+                    });
+                }
             });
             if !*awaiting {
 
@@ -113,7 +98,7 @@ impl eframe::App for gdkeApp {
                 };
                 let selval = selected.clone();
                 ui.separator();
-                egui::ScrollArea::vertical().max_height(260f32).auto_shrink([false;2])
+                egui::ScrollArea::vertical().max_height(if selval.is_none() {f32::INFINITY} else {260f32}).auto_shrink([false;2])
                 .show_rows(ui, row_height, filtered_procs.len(), move |ui,row_range| {
                     for row in row_range {
                         if let Some(proc) = (&filtered_procs).get(row) {
@@ -122,8 +107,8 @@ impl eframe::App for gdkeApp {
                         }
                     }
                 });
-                ui.separator();
                 if let Some(selected) = selval {
+                    ui.separator();
                     if ui.button(format!("get key for {}",selected.name)).clicked() {
                         tx.as_ref().unwrap().send(Data::Pid(selected.pid)).unwrap();
                         *awaiting = true;
@@ -132,8 +117,5 @@ impl eframe::App for gdkeApp {
                 }
             }
         });
-    }
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, "d", &self)
     }
 }
