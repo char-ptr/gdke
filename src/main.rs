@@ -1,29 +1,13 @@
-use poggers::mem::{external::process::ExProcess, traits::Mem};
-
-const SIGS: [&str; 3] = ["48 8D 05 ? ? ? ? 41 8A 04 04","48 8D 05 ? ? ? ? 0F B6 ? 03","4C 8D 05 ? ? ? ? 0F 1F 40 00"];
+use poggers::{external::process::ExProcess, traits::Mem};
 
 fn main() {
-    let proc = ExProcess::new_from_name("SoundSpacePlus.exe".to_string()).unwrap();
-    let bm = proc.get_base_module().unwrap();
-    for sig in SIGS.iter() {
-        let res = unsafe {bm.scan_virtual(sig)};
-        if let Some(x) = res {
-            let data = unsafe {bm.resolve_relative_ptr(x+3, 4)};
-            if let Ok(x) = data {
-                println!("found key @ {:X}", x);
-                let key_data = unsafe {bm.read_sized(x, 32)};
-                if let Ok(x) = key_data {
-                    print!("Key: ");
-                    for i in x {
-                        print!("{:02X}", i);
-                    }
-                }
-            } else {
-                println!("Unable to resolve lea relative ptr");
-            }
-            // println!("Found sig: {:X}", x);
-        } else {
-            println!("Failed to find with sig: {}", sig);
-        }
+    let mut pid = 0;
+    {
+        let proc = ExProcess::new_from_name("4 Test.exe".to_string()).unwrap();
+        pid = proc.get_pid();
     }
+
+    let key = gdke::get_from_pid(pid).expect("unable to find key");
+    
+    println!("Key: {}", key);
 }

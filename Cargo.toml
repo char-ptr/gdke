@@ -8,12 +8,18 @@ lto = true
 strip = true
 opt-level = "z"
 codegen-units = 1
+
+[profile.debuga]
+inherits = "release"
+debug = true
+strip = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-poggers = {version = "0.2.*", path = "../poggers"}
+poggers = {version = "*", path = "../poggers"}
 
 [workspace]
 members = [
     "gdke-gui",
 ]
+

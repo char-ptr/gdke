@@ -13,4 +13,5 @@ codegen-units = 1
 [dependencies]
 egui = "0.21.0"
 eframe = { version = "0.21.3" }
-poggers = {version = "0.2.*", path = "../../poggers"}
+poggers = {version = "*", path = "../../poggers"}
+gdke = {path= ".."}

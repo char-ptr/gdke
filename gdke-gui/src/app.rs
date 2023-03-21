@@ -2,14 +2,14 @@ use std::{borrow::BorrowMut, ops::Deref, sync::mpsc::{Receiver, Sender}, rc::Rc,
 
 use eframe::CreationContext;
 use egui::{TextStyle, TextEdit};
-use poggers::external::process::{ExPartialProcess, ExProcess};
+use poggers::external::{process::{ExProcess}, create_snapshot::{STProcess, ToolSnapshot}};
 
 use crate::Data;
 
 #[derive(Debug)]
 pub struct gdkeApp {
-    procs : Rc<RefCell<Vec<ExPartialProcess>>>,
-    selected: Option<ExPartialProcess>,
+    procs : Rc<RefCell<Vec<STProcess>>>,
+    selected: Option<STProcess>,
     awaiting: bool,
     last_key: String,
     process: Option<ExProcess>,
@@ -19,7 +19,7 @@ pub struct gdkeApp {
 }
 impl Default for gdkeApp {
     fn default() -> Self {
-        let procs = if let Ok(procs) = ExProcess::get_processes() {
+        let procs = if let Ok(procs) = ToolSnapshot::new_process().map(|x| x.collect()) {
             procs
         } else {
             Vec::new()
@@ -85,7 +85,7 @@ impl eframe::App for gdkeApp {
                 let text_style = TextStyle::Body;
                 let row_height = ui.text_style_height(&text_style);
                 if ui.button("refresh processes").clicked() {
-                    procs.clone().borrow_mut().replace(if let Ok(procs) = ExProcess::get_processes() {
+                    procs.clone().borrow_mut().replace(if let Ok(procs) = ToolSnapshot::new_process().map(|x| x.collect()) {
                         procs
                     } else {
                         Vec::new()
@@ -93,8 +93,8 @@ impl eframe::App for gdkeApp {
                 }
                 let mut procsrn = procs.clone();
                 let proca = procsrn.borrow();
-                let filtered_procs = if self.search_query.is_empty() {proca.iter().collect::<Vec::<&ExPartialProcess>>()} else {proca.iter()
-                    .filter(|p| p.name.contains(&self.search_query) || p.pid.to_string().contains(&self.search_query)).collect()
+                let filtered_procs = if self.search_query.is_empty() {proca.iter().collect::<Vec::<&STProcess>>()} else {proca.iter()
+                    .filter(|p| p.exe_path.contains(&self.search_query) || p.id.to_string().contains(&self.search_query)).collect()
                 };
                 let selval = selected.clone();
                 ui.separator();
@@ -103,14 +103,14 @@ impl eframe::App for gdkeApp {
                     for row in row_range {
                         if let Some(proc) = (&filtered_procs).get(row) {
                             let owner_proc = proc.deref();
-                            ui.selectable_value(selected, Some(owner_proc.clone()) , proc.name.clone());
+                            ui.selectable_value(selected, Some(owner_proc.clone()) , &proc.exe_path);
                         }
                     }
                 });
                 if let Some(selected) = selval {
                     ui.separator();
-                    if ui.button(format!("get key for {}",selected.name)).clicked() {
-                        tx.as_ref().unwrap().send(Data::Pid(selected.pid)).unwrap();
+                    if ui.button(format!("get key for {}",selected.exe_path)).clicked() {
+                        tx.as_ref().unwrap().send(Data::Pid(selected.id)).unwrap();
                         *awaiting = true;
                         last_key.clear();
                     }
