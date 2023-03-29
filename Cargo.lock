@@ -905,7 +905,7 @@ dependencies = [
 
 [[package]]
 name = "gdke-gui"
-version = "0.1.2"
+version = "0.1.5"
 dependencies = [
  "eframe",
  "egui",

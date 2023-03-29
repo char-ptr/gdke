@@ -1,6 +1,6 @@
 [package]
 name = "gdke-gui"
-version = "0.1.2"
+version = "0.1.5"
 edition = "2021"
 
 [profile.release]
