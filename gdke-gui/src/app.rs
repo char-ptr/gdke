@@ -69,7 +69,8 @@ impl eframe::App for gdkeApp {
                             println!("Failed to get key");
                             *last_key = format!("Failed to get key: {}", e);
                         }
-                        Data::Pid(_) => {unreachable!()}
+                        Data::Pid(_) => {unreachable!()},
+                        Data::EXIT => {unreachable!()}
                     }
                 } else{
                     ui.centered_and_justified(|ui| {

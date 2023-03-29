@@ -31,6 +31,9 @@ fn main() {
                             }
                         }
                     }
+                    Data::EXIT => {
+                        break;
+                    },
                     _ => {}
                 }
             }
@@ -39,11 +42,13 @@ fn main() {
     });
 
     let native_options = eframe::NativeOptions::default();
+    let ctx2 = ctx.clone();
     eframe::run_native(
         "gdke",
         native_options,
-        Box::new(move |cc| Box::new(gdkeApp::new(cc, srx, ctx))),
+        Box::new(move |cc| Box::new(gdkeApp::new(cc, srx, ctx2))),
     );
+    ctx.send(Data::EXIT).unwrap();
 
     jh.join();
 }

@@ -14,12 +14,10 @@ inherits = "release"
 debug = true
 strip = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-poggers = {version = "*", path = "../poggers"}
-
 [workspace]
 members = [
     "gdke-gui",
 ]
 
+[dependencies]
+poggers = {version = "*", path = "../poggers"}

@@ -15,7 +15,9 @@ pub fn get_from_pid(pid:u32) -> Result<String,Box<dyn Error>> {
     let proc = ExProcess::new_from_pid(pid)?;
     let bm = proc.get_base_module()?;
     for sig in &SIGS {
+        let timer = std::time::Instant::now();
         let res = unsafe { bm.scan_virtual(sig) };
+        println!("Scan took: {}ms", timer.elapsed().as_millis());
         if let Some(x) = res {
             let data = unsafe { bm.resolve_relative_ptr(x + 3, 4) };
             if let Ok(x) = data {
