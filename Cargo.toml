@@ -21,3 +21,4 @@ members = [
 
 [dependencies]
 poggers = {version = "*", path = "../poggers"}
+crossbeam = "0.8.2"

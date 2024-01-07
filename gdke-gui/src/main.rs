@@ -5,7 +5,6 @@
 use std::error::Error;
 
 use gdke_gui::{app::gdkeApp, Data};
-use poggers::{external::process::ExProcess, traits::Mem};
 
 fn main() {
     let (stx, srx) = std::sync::mpsc::channel::<Data>();
@@ -33,7 +32,7 @@ fn main() {
                     }
                     Data::EXIT => {
                         break;
-                    },
+                    }
                     _ => {}
                 }
             }
@@ -52,3 +51,4 @@ fn main() {
 
     jh.join();
 }
+
