@@ -3,16 +3,13 @@ use std::{
     error::Error,
     ffi::{c_void, CStr, CString},
     mem::{size_of, transmute},
+    net::UdpSocket,
     ptr::{addr_of, null, null_mut},
     time::Duration,
 };
 
 use dll_syringe::{process::OwnedProcess, Syringe};
 use poggers::{structures::process::Process, traits::Mem};
-use windows::Win32::System::{
-    Diagnostics::Debug::{GetThreadContext, CONTEXT, IMAGE_NT_HEADERS64},
-    Threading::{ResumeThread, SuspendThread},
-};
 use windows::{
     core::{PCSTR, PSTR},
     Win32::{
@@ -21,11 +18,17 @@ use windows::{
             ProcessStatus::{K32GetModuleInformation, MODULEINFO},
             SystemServices::IMAGE_DOS_HEADER,
             Threading::{
-                CreateProcessA, NtQueryInformationProcess, ProcessBasicInformation,
-                TerminateProcess, CREATE_SUSPENDED, PEB, PROCESS_BASIC_INFORMATION,
+                CreateProcessA, TerminateProcess, CREATE_SUSPENDED, PEB, PROCESS_BASIC_INFORMATION,
                 PROCESS_INFORMATION, STARTUPINFOA,
             },
         },
+    },
+};
+use windows::{
+    Wdk::System::Threading::{NtQueryInformationProcess, ProcessBasicInformation},
+    Win32::System::{
+        Diagnostics::Debug::{GetThreadContext, CONTEXT, IMAGE_NT_HEADERS64},
+        Threading::{ResumeThread, SuspendThread},
     },
 };
 
@@ -82,20 +85,23 @@ pub unsafe fn spawn_and_inject(proc: &str) {
     let entry_insts: [u8; 2] = proc.read(entry).expect("failed to read entry");
     let pay_load: [u8; 2] = [0xEB, 0xFE];
     proc.write(entry, &pay_load);
-    println!("{:x?}", entry_insts);
     //
     // resume the thread
     ResumeThread(proc_info.hThread);
     // wait until trapped... and inject
-    let target = OwnedProcess::from_pid(proc.get_pid()).unwrap();
-    let syrnge = Syringe::for_process(target);
-    let injmod = syrnge.inject("./gdkeinj.dll").unwrap();
+    {
+        let sock = UdpSocket::bind("127.0.0.1:28713").expect("failed to bind socket");
 
+        let target = OwnedProcess::from_pid(proc.get_pid()).unwrap();
+        let syrnge = Syringe::for_process(target);
+        let injmod = syrnge.inject("./target/debug/gdkeinj.dll").unwrap();
+
+        println!("waiting until udp is ok ");
+
+        sock.recv(&mut [0]);
+    }
     // we're done. let's kill the process.
-    println!("waiting 2secs ");
-    std::thread::sleep(Duration::from_secs(2));
-    println!("waited 2secs, restoring..",);
-    println!("{:?}", injmod.handle());
+    println!("done, restoring..",);
     proc.write(entry, &entry_insts);
-    // TerminateProcess(proc_info.hProcess, 1);
+    TerminateProcess(proc_info.hProcess, 1);
 }

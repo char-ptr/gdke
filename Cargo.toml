@@ -22,6 +22,9 @@ strip = false
 windows = { features = [
   "Win32_Foundation",
   "Win32_System",
+  "Wdk",
+  "Wdk_System",
+  "Wdk_System_Threading",
   "Win32_System_Threading",
   "Win32_System_Diagnostics",
   "Win32_System_Diagnostics_Debug",
@@ -31,6 +34,6 @@ windows = { features = [
   "Win32_System_ProcessStatus",
   "Win32_Security",
 ], version = "0.52" }
-# dll-syringe = "*"
+dll-syringe = "*"
 poggers = { version = "*", path = "../poggers" }
 crossbeam = "0.8.2"
