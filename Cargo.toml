@@ -1,3 +1,4 @@
+workspace = { members = ["gdkeinj"] }
 [package]
 name = "gdke"
 version = "0.1.0"
@@ -14,11 +15,22 @@ inherits = "release"
 debug = true
 strip = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[workspace]
-members = [
-    "gdke-gui",
-]
+# [workspace]
+# members = ["gdke-gui"]
 
 [dependencies]
-poggers = {version = "*", path = "../poggers"}
+windows = { features = [
+  "Win32_Foundation",
+  "Win32_System",
+  "Win32_System_Threading",
+  "Win32_System_Diagnostics",
+  "Win32_System_Diagnostics_Debug",
+  "Win32_System_SystemInformation",
+  "Win32_System_SystemServices",
+  "Win32_System_Kernel",
+  "Win32_System_ProcessStatus",
+  "Win32_Security",
+], version = "0.52" }
+# dll-syringe = "*"
+poggers = { version = "*", path = "../poggers" }
 crossbeam = "0.8.2"
