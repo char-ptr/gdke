@@ -1,4 +1,5 @@
 #![feature(offset_of)]
+pub mod versioning;
 use std::{
     error::Error,
     ffi::{c_void, CStr, CString},
