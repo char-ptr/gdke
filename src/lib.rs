@@ -1,8 +1,9 @@
-#![feature(offset_of)]
+#![feature(offset_of_nested)]
 pub mod versioning;
 use std::{
     error::Error,
     ffi::{c_void, CStr, CString},
+    io::Read,
     mem::{size_of, transmute},
     net::UdpSocket,
     ptr::{addr_of, null, null_mut},
@@ -69,40 +70,54 @@ pub unsafe fn spawn_and_inject(proc: &str) {
         &mut 0,
     );
     let proc = Process::find_pid(proc_info.dwProcessId).unwrap();
-    let pebby: PEB = proc.read(ptr_to_pbi.PebBaseAddress as usize).expect("the");
-    let pImage = pebby.Reserved3[1] as usize;
-    let e_lf: u32 = proc
-        .read(pImage + std::mem::offset_of!(IMAGE_DOS_HEADER, e_lfanew))
-        .expect("bruh");
-    let entry: u32 = proc
-        .read(
-            pImage
-                + e_lf as usize
-                + std::mem::offset_of!(IMAGE_NT_HEADERS64, OptionalHeader.AddressOfEntryPoint),
-        )
-        .expect("bruh");
-    let entry = pImage + entry as usize;
-    println!("entry = {:x}", entry);
-    let entry_insts: [u8; 2] = proc.read(entry).expect("failed to read entry");
+    let image_base_addr: *const c_void = proc
+        .read(ptr_to_pbi.PebBaseAddress as usize + 0x10)
+        .expect("the");
+    let mut headers = [0; 4096];
+    proc.raw_read(image_base_addr as usize, headers.as_mut_ptr(), 4096);
+    let dos_hdr = transmute::<*const u8, *const IMAGE_DOS_HEADER>(headers.as_ptr());
+    let nt_hdrs = transmute::<*const u8, *const IMAGE_NT_HEADERS64>(
+        headers
+            .as_ptr()
+            .wrapping_add((*dos_hdr).e_lfanew.try_into().unwrap()),
+    );
+    let code_entry =
+        image_base_addr.wrapping_add((*nt_hdrs).OptionalHeader.AddressOfEntryPoint as usize);
+    println!(
+        "entry = {:p} B = {:X} C = {:p}",
+        code_entry,
+        (*nt_hdrs).OptionalHeader.AddressOfEntryPoint,
+        image_base_addr
+    );
+    let entry_insts: [u8; 2] = proc
+        .read(code_entry as usize)
+        .expect("failed to read entry");
     let pay_load: [u8; 2] = [0xEB, 0xFE];
-    proc.write(entry, &pay_load);
+    proc.write(code_entry as usize, &pay_load);
     //
     // resume the thread
     ResumeThread(proc_info.hThread);
+    // ResumeThread(proc_info.hThread);
     // wait until trapped... and inject
+    let sock = UdpSocket::bind("127.0.0.1:28713").expect("failed to bind socket");
     {
-        let sock = UdpSocket::bind("127.0.0.1:28713").expect("failed to bind socket");
-
         let target = OwnedProcess::from_pid(proc.get_pid()).unwrap();
         let syrnge = Syringe::for_process(target);
         let injmod = syrnge.inject("./target/debug/gdkeinj.dll").unwrap();
 
         println!("waiting until udp is ok ");
 
-        sock.recv(&mut [0]);
+        let (_, addr) = sock.recv_from(&mut [0]).unwrap();
+        sock.send_to(&1_u32.to_ne_bytes(), addr).unwrap();
+        let _ = sock.recv(&mut []);
     }
     // we're done. let's kill the process.
-    println!("done, restoring..",);
-    proc.write(entry, &entry_insts);
+    println!("done, running code after enter..",);
+    let mut inp = String::new();
+    std::io::stdin().read_line(&mut inp);
+    proc.write(code_entry as usize, &entry_insts);
+    println!("waiting for call.");
+    let _ = sock.recv(&mut []);
+    println!("complete.");
     TerminateProcess(proc_info.hProcess, 1);
 }

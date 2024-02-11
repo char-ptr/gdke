@@ -19,7 +19,6 @@ strip = false
 # members = ["gdke-gui"]
 
 [dependencies]
-semver = "*"
 anyhow = "*"
 windows = { features = [
   "Win32_Foundation",
