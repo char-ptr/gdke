@@ -102,7 +102,16 @@ pub unsafe fn spawn_and_inject(proc: &str) {
     {
         let target = OwnedProcess::from_pid(proc.get_pid()).unwrap();
         let syrnge = Syringe::for_process(target);
-        let injmod = syrnge.inject("./target/debug/gdkeinj.dll").unwrap();
+        let injmod = syrnge
+            .inject(format!(
+                "./target/{}/gdkeinj.dll",
+                if cfg!(debug_assertions) {
+                    "debug"
+                } else {
+                    "release"
+                }
+            ))
+            .unwrap();
 
         println!("waiting until udp is ok ");
 

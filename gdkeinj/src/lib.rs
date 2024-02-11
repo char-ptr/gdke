@@ -14,7 +14,8 @@ static_detour! {
     pub static OpenAndParse:  unsafe extern "fastcall" fn(*const i32, *const i32, *const u8, bool) -> ();
 }
 
-#[poggers_derive::create_entry(no_free)]
+#[cfg_attr(debug_assertions, poggers_derive::create_entry)]
+#[cfg_attr(not(debug_assertions), poggers_derive::create_entry(no_console))]
 pub fn main() {
     let mut sigs = HashMap::<u32, (&'static str, i32)>::new();
     sigs.insert(
@@ -54,6 +55,7 @@ pub fn main() {
                 let ptr_to_key = (key as usize + 8) as *const *const u8;
                 std::ptr::copy(*ptr_to_key, read_key.as_mut_ptr(), 32);
                 sock2.send(read_key.as_slice());
+                // panic!("good ridance.")
             })
             .unwrap();
         opp.enable();
