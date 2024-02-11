@@ -9,9 +9,9 @@ use poggers::{
 use retour::static_detour;
 
 // *const i32, *const i32, *const i32, bool
-type open_and_parse_t = unsafe extern "fastcall" fn(*const i32, *const i32, *const i32, bool) -> ();
+type open_and_parse_t = unsafe extern "fastcall" fn(*const i32, *const i32, *const u8, bool) -> ();
 static_detour! {
-    pub static OpenAndParse:  unsafe extern "fastcall" fn(*const i32, *const i32, *const i32, bool) -> ();
+    pub static OpenAndParse:  unsafe extern "fastcall" fn(*const i32, *const i32, *const u8, bool) -> ();
 }
 
 #[poggers_derive::create_entry(no_free)]
@@ -29,7 +29,6 @@ pub fn main() {
     let modd = proc.get_base_module().unwrap();
 
     println!("sending data, waiting for sig ver");
-    std::thread::sleep(Duration::from_secs(2));
     sock.send(&buf);
 
     let mut sig_type = [0; 4];
@@ -42,20 +41,19 @@ pub fn main() {
     let mut addr_offset = [0; 4];
     unsafe { std::ptr::copy(ptr_to_fn, addr_offset.as_mut_ptr(), 4) };
     let by = i32::from_ne_bytes(addr_offset);
-    println!("addr offset = {:x?}", addr_offset);
     let fn_ptr = (addr + by as isize + 5) as *const c_void;
     println!("fnptr = {:x?}", fn_ptr);
 
-    println!("sig found: {:x} {:p}", addr, ptr_to_fn);
+    println!("sig found: {:x} ", addr);
     let sock2 = sock.try_clone().unwrap();
     unsafe {
         let open_and_parse = std::mem::transmute::<isize, open_and_parse_t>(fn_ptr as isize);
         let opp = OpenAndParse
             .initialize(open_and_parse, move |this, base, key, mode| {
-                println!("open and parse called {key:?}");
-                let mut key: *const u8 = std::ptr::null();
-                // std::arch::asm!("mov {}, r8", out(reg) key);
-                // println!("key = {:?}", key);
+                let mut read_key = [0u8; 32];
+                let ptr_to_key = (key as usize + 8) as *const *const u8;
+                std::ptr::copy(*ptr_to_key, read_key.as_mut_ptr(), 32);
+                sock2.send(read_key.as_slice());
             })
             .unwrap();
         opp.enable();

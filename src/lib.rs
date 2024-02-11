@@ -6,6 +6,7 @@ use std::{
     io::Read,
     mem::{size_of, transmute},
     net::UdpSocket,
+    path::Path,
     ptr::{addr_of, null, null_mut},
     time::Duration,
 };
@@ -39,6 +40,10 @@ fn create_pstr(c_str: &CStr) -> PSTR {
 }
 
 pub unsafe fn spawn_and_inject(proc: &str) {
+    let pth = Path::new(proc);
+    if !pth.is_file() {
+        panic!("file does not exist");
+    }
     let cmd_line_c = CString::new(proc).expect("invalid cstr");
     let start_up_info = STARTUPINFOA {
         ..Default::default()
@@ -83,12 +88,7 @@ pub unsafe fn spawn_and_inject(proc: &str) {
     );
     let code_entry =
         image_base_addr.wrapping_add((*nt_hdrs).OptionalHeader.AddressOfEntryPoint as usize);
-    println!(
-        "entry = {:p} B = {:X} C = {:p}",
-        code_entry,
-        (*nt_hdrs).OptionalHeader.AddressOfEntryPoint,
-        image_base_addr
-    );
+    println!("entry = {:p}", code_entry,);
     let entry_insts: [u8; 2] = proc
         .read(code_entry as usize)
         .expect("failed to read entry");
@@ -97,7 +97,6 @@ pub unsafe fn spawn_and_inject(proc: &str) {
     //
     // resume the thread
     ResumeThread(proc_info.hThread);
-    // ResumeThread(proc_info.hThread);
     // wait until trapped... and inject
     let sock = UdpSocket::bind("127.0.0.1:28713").expect("failed to bind socket");
     {
@@ -112,12 +111,15 @@ pub unsafe fn spawn_and_inject(proc: &str) {
         let _ = sock.recv(&mut []);
     }
     // we're done. let's kill the process.
-    println!("done, running code after enter..",);
-    let mut inp = String::new();
-    std::io::stdin().read_line(&mut inp);
+    println!("done, running code",);
     proc.write(code_entry as usize, &entry_insts);
     println!("waiting for call.");
-    let _ = sock.recv(&mut []);
-    println!("complete.");
+    let mut key = [0; 32];
+    let _ = sock.recv(&mut key);
+    println!("recieved key: ");
+    for val in key {
+        print!("{:x}", val);
+    }
+    println!("\ncomplete.");
     TerminateProcess(proc_info.hProcess, 1);
 }
