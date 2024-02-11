@@ -181,7 +181,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "dll-syringe",
- "poggers 1.1.6",
+ "poggers",
  "windows",
 ]
 
@@ -189,8 +189,8 @@ dependencies = [
 name = "gdkeinj"
 version = "0.1.0"
 dependencies = [
- "poggers 1.1.6 (git+https://github.com/pozm/poggers.git)",
- "poggers-derive 0.1.5 (git+https://github.com/pozm/poggers.git)",
+ "poggers",
+ "poggers-derive",
  "retour",
 ]
 
@@ -346,13 +346,6 @@ dependencies = [
 [[package]]
 name = "macos-libproc"
 version = "0.1.0"
-dependencies = [
- "bindgen",
-]
-
-[[package]]
-name = "macos-libproc"
-version = "0.1.0"
 source = "git+https://github.com/pozm/poggers.git#cc24264792ba93b8c25456cacb34c188e49e0998"
 dependencies = [
  "bindgen",
@@ -458,42 +451,17 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 [[package]]
 name = "poggers"
 version = "1.1.6"
-dependencies = [
- "bitfield-struct",
- "ctor",
- "libc",
- "mach",
- "macos-libproc 0.1.0",
- "poggers-derive 0.1.5",
- "thiserror",
- "widestring",
- "windows",
-]
-
-[[package]]
-name = "poggers"
-version = "1.1.6"
 source = "git+https://github.com/pozm/poggers.git#cc24264792ba93b8c25456cacb34c188e49e0998"
 dependencies = [
  "bitfield-struct",
  "ctor",
  "libc",
  "mach",
- "macos-libproc 0.1.0 (git+https://github.com/pozm/poggers.git)",
- "poggers-derive 0.1.5 (git+https://github.com/pozm/poggers.git)",
+ "macos-libproc",
+ "poggers-derive",
  "thiserror",
  "widestring",
  "windows",
-]
-
-[[package]]
-name = "poggers-derive"
-version = "0.1.5"
-dependencies = [
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "syn 2.0.48",
 ]
 
 [[package]]
