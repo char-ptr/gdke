@@ -23,21 +23,20 @@ pub fn main() {
         ("E8 ? ? ? ? 85 C0 0F 84 ? ? ? ? 49 8B 8C 24 ? ? ? ?", -0x3c),
     );
     let sock = UdpSocket::bind("127.0.0.1:29849").unwrap();
-    let mut buf = [1; 1];
     sock.connect("127.0.0.1:28713").expect("uanble to connect");
 
     let proc = Process::this_process();
     let modd = proc.get_base_module().unwrap();
 
     println!("sending data, waiting for sig ver");
-    sock.send(&buf);
+    let buf = [1; 1];
+    sock.send(&buf).ok();
 
     let mut sig_type = [0; 4];
-    sock.recv(&mut sig_type);
+    sock.recv(&mut sig_type).unwrap();
     let int_sig = u32::from_ne_bytes(sig_type);
     let sig = sigs.get(&int_sig).expect("sig type match not compatible");
-    let mut addr = modd.scan(sig.0).unwrap().unwrap() as isize; //+ sig.1 as isize;
-                                                                // addr += sig.1 as isize;
+    let addr = modd.scan(sig.0).unwrap().unwrap() as isize;
     let ptr_to_fn = (addr as usize + size_of::<u8>()) as *const u8;
     let mut addr_offset = [0; 4];
     unsafe { std::ptr::copy(ptr_to_fn, addr_offset.as_mut_ptr(), 4) };
@@ -50,16 +49,17 @@ pub fn main() {
     unsafe {
         let open_and_parse = std::mem::transmute::<isize, open_and_parse_t>(fn_ptr as isize);
         let opp = OpenAndParse
-            .initialize(open_and_parse, move |this, base, key, mode| {
+            .initialize(open_and_parse, move |_, _, key, _| {
                 let mut read_key = [0u8; 32];
                 let ptr_to_key = (key as usize + 8) as *const *const u8;
                 std::ptr::copy(*ptr_to_key, read_key.as_mut_ptr(), 32);
-                sock2.send(read_key.as_slice());
+                sock2.send(read_key.as_slice()).unwrap();
+                std::thread::sleep(Duration::from_secs(1000))
                 // panic!("good ridance.")
             })
             .unwrap();
-        opp.enable();
+        opp.enable().expect("failed to enable detour");
         println!("detour enabled {}", opp.is_enabled());
     }
-    sock.send(&[]);
+    sock.send(&[]).ok();
 }

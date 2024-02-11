@@ -1,7 +1,7 @@
 workspace = { members = ["gdkeinj"] }
 [package]
 name = "gdke"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [profile.release]
@@ -19,6 +19,10 @@ strip = false
 # members = ["gdke-gui"]
 
 [dependencies]
+rust-embed = { version = "*", features = [
+  "include-exclude",
+  "interpolate-folder-path",
+] }
 anyhow = "*"
 windows = { features = [
   "Win32_Foundation",

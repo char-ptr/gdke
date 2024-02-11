@@ -1,5 +1,5 @@
 use std::{
-    io::{BufRead, BufReader, Cursor, Stdin, Stdout},
+    io::{BufRead, Cursor},
     path::Path,
     process::{Command, Stdio},
 };
