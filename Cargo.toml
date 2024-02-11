@@ -37,4 +37,3 @@ windows = { features = [
 ], version = "0.52" }
 dll-syringe = "*"
 poggers = { version = "*", path = "../poggers" }
-crossbeam = "0.8.2"

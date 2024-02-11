@@ -1,4 +1,3 @@
-#![feature(offset_of_nested)]
 pub mod versioning;
 use std::{
     error::Error,
