@@ -267,6 +267,7 @@ dependencies = [
  "dll-syringe",
  "poggers",
  "rust-embed",
+ "thiserror",
  "windows",
 ]
 

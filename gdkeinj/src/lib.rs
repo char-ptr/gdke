@@ -14,37 +14,62 @@ static_detour! {
     pub static OpenAndParse:  unsafe extern "fastcall" fn(*const i32, *const i32, *const u8, bool) -> ();
 }
 
-#[cfg_attr(debug_assertions, poggers_derive::create_entry)]
-#[cfg_attr(not(debug_assertions), poggers_derive::create_entry(no_console))]
-pub fn main() {
-    let mut sigs = HashMap::<u32, (&'static str, i32)>::new();
-    sigs.insert(
-        1,
-        ("E8 ? ? ? ? 85 C0 0F 84 ? ? ? ? 49 8B 8C 24 ? ? ? ?", -0x3c),
-    );
-    let sock = UdpSocket::bind("127.0.0.1:29849").unwrap();
-    sock.connect("127.0.0.1:28713").expect("uanble to connect");
-
+const SIGS: [&str; 2] = [
+    // call into open_and_parse
+    "E8 ? ? ? ? 85 C0 0F 84 ? ? ? ? 49 8B 8C 24 ? ? ? ?", // 4.x (4.2.1)
+    "E8 ? ? ? ? 8B D8 85 C0 0F 84 ? ? ? ? 49 8B 04 24",   // 3.x
+];
+#[repr(u8)]
+#[derive(Debug)]
+enum SigErrors {
+    NotFound,
+}
+fn find_sig_addr(sig_type: usize) -> Result<*const c_void, SigErrors> {
     let proc = Process::this_process();
     let modd = proc.get_base_module().unwrap();
 
-    println!("sending data, waiting for sig ver");
-    let buf = [1; 1];
-    sock.send(&buf).ok();
-
-    let mut sig_type = [0; 4];
-    sock.recv(&mut sig_type).unwrap();
-    let int_sig = u32::from_ne_bytes(sig_type);
-    let sig = sigs.get(&int_sig).expect("sig type match not compatible");
-    let addr = modd.scan(sig.0).unwrap().unwrap() as isize;
+    let sig = SIGS
+        .get(sig_type as usize)
+        .ok_or_else(|| SigErrors::NotFound)?;
+    let addr = modd
+        .scan(sig)
+        .map_err(|_| SigErrors::NotFound)?
+        .ok_or_else(|| SigErrors::NotFound)? as isize;
+    println!("sig found: {:x} ", addr);
     let ptr_to_fn = (addr as usize + size_of::<u8>()) as *const u8;
     let mut addr_offset = [0; 4];
     unsafe { std::ptr::copy(ptr_to_fn, addr_offset.as_mut_ptr(), 4) };
     let by = i32::from_ne_bytes(addr_offset);
     let fn_ptr = (addr + by as isize + 5) as *const c_void;
-    println!("fnptr = {:x?}", fn_ptr);
+    println!("fnptr = {:x?} B = ${addr_offset:?}, ${by:?}", fn_ptr);
 
-    println!("sig found: {:x} ", addr);
+    Ok(fn_ptr)
+}
+#[cfg_attr(debug_assertions, poggers_derive::create_entry(no_free))]
+#[cfg_attr(not(debug_assertions), poggers_derive::create_entry(no_console))]
+pub fn main() {
+    let sock = UdpSocket::bind("127.0.0.1:29849").unwrap();
+    sock.connect("127.0.0.1:28713").expect("uanble to connect");
+
+    println!("sending data, waiting for sig ver");
+    let buf = [];
+    sock.send(&buf).ok();
+
+    let mut sig_type = [0; 4];
+    sock.recv(&mut sig_type).unwrap();
+    let int_sig = u32::from_ne_bytes(sig_type);
+    let fn_ptr = find_sig_addr(int_sig as usize);
+    let fn_ptr = match fn_ptr {
+        Ok(x) => x,
+        Err(err) => {
+            println!("err  {err:?}");
+
+            std::thread::sleep(Duration::from_secs(100));
+            sock.send(&[err as u8]).ok();
+            return;
+        }
+    };
+
     let sock2 = sock.try_clone().unwrap();
     unsafe {
         let open_and_parse = std::mem::transmute::<isize, open_and_parse_t>(fn_ptr as isize);
@@ -61,5 +86,5 @@ pub fn main() {
         opp.enable().expect("failed to enable detour");
         println!("detour enabled {}", opp.is_enabled());
     }
-    sock.send(&[]).ok();
+    sock.send(&(400195u32.to_ne_bytes())).ok();
 }

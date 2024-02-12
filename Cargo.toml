@@ -24,6 +24,7 @@ rust-embed = { version = "*", features = [
   "interpolate-folder-path",
 ] }
 anyhow = "*"
+thiserror = "*"
 windows = { features = [
   "Win32_Foundation",
   "Win32_System",

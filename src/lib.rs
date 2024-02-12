@@ -10,6 +10,7 @@ use std::{
 use dll_syringe::{process::OwnedProcess, Syringe};
 use poggers::{exports::HANDLE, structures::process::Process, traits::Mem};
 use rust_embed::RustEmbed;
+use thiserror::Error;
 use windows::{
     core::{PCSTR, PSTR},
     Win32::{
@@ -27,6 +28,22 @@ use windows::{
     Wdk::System::Threading::{NtQueryInformationProcess, ProcessBasicInformation},
     Win32::System::{Diagnostics::Debug::IMAGE_NT_HEADERS64, Threading::ResumeThread},
 };
+
+use crate::versioning::check_gd_ver;
+#[repr(u8)]
+#[derive(Error, Debug)]
+enum SigErrors {
+    #[error("Signature not found")]
+    NotFound,
+}
+impl From<u8> for SigErrors {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::NotFound,
+            default => Self::NotFound,
+        }
+    }
+}
 
 fn create_pstr(c_str: &CStr) -> PSTR {
     PSTR::from_raw(c_str.as_ptr() as *mut u8)
@@ -106,7 +123,7 @@ pub unsafe fn spawn_and_inject(proc: &str) -> anyhow::Result<[u8; 32]> {
     ResumeThread(proc_info.hThread);
     // wait until trapped... and inject
     let sock = UdpSocket::bind("127.0.0.1:28713").expect("failed to bind socket");
-    {
+    let res: anyhow::Result<()> = {
         let target = OwnedProcess::from_pid(proc.get_pid()).unwrap();
         let syrnge = Syringe::for_process(target);
         let dll_loc = if cfg!(debug_assertions) {
@@ -123,21 +140,50 @@ pub unsafe fn spawn_and_inject(proc: &str) -> anyhow::Result<[u8; 32]> {
             file.write_all(&gdke_inj_dll.data).unwrap();
             loc.to_str().map(|x| x.to_string()).unwrap()
         };
+        let game_ver = check_gd_ver(pth)?;
+        println!("gamever = {game_ver}");
+        let sig_id = match game_ver
+            .chars()
+            .next()
+            .ok_or(anyhow::anyhow!("unable to check gd version"))?
+        {
+            '4' => 0u32,
+            '3' => 1u32,
+            _ => return Err(anyhow::anyhow!("invalid godot version")),
+        };
+
         println!("injecting dll ({})", dll_loc);
-        syrnge.inject(dll_loc).unwrap();
+        syrnge.inject(dll_loc)?;
 
         println!("waiting until udp is ok ");
 
         let (_, addr) = sock.recv_from(&mut [0]).unwrap();
-        sock.send_to(&1_u32.to_ne_bytes(), addr).unwrap();
-        sock.recv(&mut [])?;
-    }
+        println!("using sig id {sig_id}");
+        sock.send_to(&sig_id.to_ne_bytes(), addr).unwrap();
+        let mut error = [0u8; 4];
+        sock.recv(&mut error)?;
+        println!("errors -> {error:?}");
+        if error.is_empty() {
+            return Err(SigErrors::from(error[0]).into());
+        }
+        Ok(())
+    };
+    res?;
     // we're done. let's kill the process.
     println!("done, running code",);
+    #[cfg(debug_assertions)]
+    {
+        println!("[debug] waiting for input");
+        std::io::stdin().read_line(&mut String::new());
+    }
     proc.write(code_entry as usize, &entry_insts)?;
     println!("waiting for call.");
     let mut key = [0; 32];
     sock.recv(&mut key)?;
+    if key.len() == 1 {
+        eprintln!("recieved err");
+        return Err(SigErrors::from(key[0]).into());
+    }
     println!("recieved key, term");
     Ok(key)
 }
