@@ -14,10 +14,12 @@ static_detour! {
     pub static OpenAndParse:  unsafe extern "fastcall" fn(*const i32, *const i32, *const u8, bool) -> ();
 }
 
-const SIGS: [&str; 2] = [
+const SIGS: [&str; 4] = [
     // call into open_and_parse
-    "E8 ? ? ? ? 85 C0 0F 84 ? ? ? ? 49 8B 8C 24 ? ? ? ?", // 4.x (4.2.1)
-    "E8 ? ? ? ? 8B D8 85 C0 0F 84 ? ? ? ? 49 8B 04 24",   // 3.x
+    "E8 ? ? ? ? 85 C0 0F 84 ?  ?  ? ? 49 8B 8C 24 ?  ?  ?  ?", // 4.x (4.2.1)
+    "E8 ? ? ? ? 89 44 24 50 83 7C 24 ? ?  0F 84 ?  ?  ?  ?  48 8B 44 24 ?", // 3.5.1
+    "E8 ? ? ? ? 89 44 24 50 83 7C 24 ? ?  0F 84 ?  ?  ?  ?  48 8B 44 24 ?", // 3.5.1
+    "E8 ? ? ? ? 8B D8 85 C0 0F 84 ? ? ?  ?  49 8B 04 24",      // 3.x
 ];
 #[repr(u8)]
 #[derive(Debug)]
@@ -28,13 +30,11 @@ fn find_sig_addr(sig_type: usize) -> Result<*const c_void, SigErrors> {
     let proc = Process::this_process();
     let modd = proc.get_base_module().unwrap();
 
-    let sig = SIGS
-        .get(sig_type as usize)
-        .ok_or_else(|| SigErrors::NotFound)?;
+    let sig = SIGS.get(sig_type).ok_or(SigErrors::NotFound)?;
     let addr = modd
         .scan(sig)
         .map_err(|_| SigErrors::NotFound)?
-        .ok_or_else(|| SigErrors::NotFound)? as isize;
+        .ok_or(SigErrors::NotFound)? as isize;
     println!("sig found: {:x} ", addr);
     let ptr_to_fn = (addr as usize + size_of::<u8>()) as *const u8;
     let mut addr_offset = [0; 4];

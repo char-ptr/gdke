@@ -142,13 +142,14 @@ pub unsafe fn spawn_and_inject(proc: &str) -> anyhow::Result<[u8; 32]> {
         };
         let game_ver = check_gd_ver(pth)?;
         println!("gamever = {game_ver}");
-        let sig_id = match game_ver
-            .chars()
-            .next()
-            .ok_or(anyhow::anyhow!("unable to check gd version"))?
+        let sig_id = match &game_ver
+            .chars().collect::<Vec<char>>()[..]
+            // .next()
+            // .ok_or(anyhow::anyhow!("unable to check gd version"))?
         {
-            '4' => 0u32,
-            '3' => 1u32,
+            ['4',..] => 0u32,
+            ['3','.','6',..] => 2u32,
+            ['3',..] => 1u32,
             _ => return Err(anyhow::anyhow!("invalid godot version")),
         };
 
