@@ -1,6 +1,5 @@
 # gdke
 A external and gui based version of [godot-key-extract](https://github.com/pozm/godot-key-extract)
-## 🚧currently waiting for nvim-treesitter to be updated [nvim-treesitter#6135](https://github.com/nvim-treesitter/nvim-treesitter/issues/6135)
 # Images
 ![image](https://user-images.githubusercontent.com/44528100/226689803-88b22777-f2ed-4b6f-ad57-4adfab1e9f7c.png)
 ![image](https://user-images.githubusercontent.com/44528100/226690113-5d6210f2-f4b6-48e0-958d-20e74c75fc59.png)
