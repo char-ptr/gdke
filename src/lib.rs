@@ -147,6 +147,7 @@ pub unsafe fn spawn_and_inject(proc: &str) -> anyhow::Result<[u8; 32]> {
             // .next()
             // .ok_or(anyhow::anyhow!("unable to check gd version"))?
         {
+            ['4','.','3',..] => 4u32,
             ['4',..] => 0u32,
             ['3','.','6',..] => 2u32,
             ['3',..] => 1u32,

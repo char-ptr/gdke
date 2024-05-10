@@ -39,6 +39,6 @@ windows = { features = [
   "Win32_System_Kernel",
   "Win32_System_ProcessStatus",
   "Win32_Security",
-], version = "0.52" }
+], version = "0.56" }
 dll-syringe = "*"
 poggers = { version = "*", git = "https://github.com/pozm/poggers.git" }
