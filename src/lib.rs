@@ -165,7 +165,12 @@ pub unsafe fn spawn_and_inject(proc: &str) -> anyhow::Result<[u8; 32]> {
         let mut error = [0u8; 4];
         sock.recv(&mut error)?;
         println!("errors -> {error:?}");
-        if error.is_empty() {
+        if error.iter().all(|x| *x != 0) {
+            #[cfg(debug_assertions)]
+            {
+                println!("[debug] waiting for input");
+                std::io::stdin().read_line(&mut String::new());
+            }
             return Err(SigErrors::from(error[0]).into());
         }
         Ok(())

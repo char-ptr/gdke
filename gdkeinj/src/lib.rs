@@ -1,5 +1,10 @@
 use std::{
-    collections::HashMap, ffi::c_void, mem::size_of, net::UdpSocket, ptr::null, time::Duration,
+    collections::HashMap,
+    ffi::c_void,
+    mem::size_of,
+    net::UdpSocket,
+    ptr::{null, slice_from_raw_parts},
+    time::Duration,
 };
 
 use poggers::{
@@ -36,7 +41,7 @@ fn find_sig_addr(sig_type: usize) -> Result<*const c_void, SigErrors> {
         .scan(sig)
         .map_err(|_| SigErrors::NotFound)?
         .ok_or(SigErrors::NotFound)? as isize;
-    let ptr_to_fn = (addr as usize + 1) as *const u8;
+    let ptr_to_fn = (addr as usize + size_of::<u8>()) as *const u8;
     let mut addr_offset = [0; 4];
     unsafe { std::ptr::copy(ptr_to_fn, addr_offset.as_mut_ptr(), 4) };
     let by = i32::from_ne_bytes(addr_offset);
@@ -69,22 +74,26 @@ pub fn main() {
             println!("err  {err:?}");
 
             std::thread::sleep(Duration::from_secs(100));
-            sock.send(&[err as u8]).ok();
+            // sock.send(&[err as u8]).ok();
             return;
         }
     };
 
-    println!("sending fnptr");
+    println!("hooking fnptr");
     let sock2 = sock.try_clone().unwrap();
     unsafe {
         let open_and_parse = std::mem::transmute::<isize, open_and_parse_t>(fn_ptr as isize);
         let opp = OpenAndParse
             .initialize(open_and_parse, move |_, _, key, _| {
                 println!("hook has been called");
-                let mut read_key = [0u8; 32];
                 let ptr_to_key = (key as usize + 8) as *const *const u8;
-                std::ptr::copy(*ptr_to_key, read_key.as_mut_ptr(), 32);
-                sock2.send(read_key.as_slice()).unwrap();
+                println!("key ptr = {:p}", ptr_to_key);
+                #[cfg(debug_assertions)]
+                {
+                    println!("[debug] waiting for input");
+                    std::io::stdin().read_line(&mut String::new());
+                }
+                sock2.send(&*slice_from_raw_parts(*ptr_to_key, 32)).unwrap();
                 std::thread::sleep(Duration::from_secs(1000))
                 // panic!("good ridance.")
             })
@@ -92,5 +101,5 @@ pub fn main() {
         opp.enable().expect("failed to enable detour");
         println!("detour enabled {}", opp.is_enabled());
     }
-    sock.send(&(400195u32.to_ne_bytes())).ok();
+    sock.send(&[0, 0, 0, 0]).ok();
 }
