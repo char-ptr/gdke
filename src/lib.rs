@@ -1,7 +1,7 @@
 pub mod versioning;
 use std::{
     ffi::{c_void, CStr, CString},
-    io::Write,
+    io::{Read, Write},
     mem::{size_of, transmute},
     net::UdpSocket,
     path::Path,
@@ -61,7 +61,7 @@ impl Drop for ProcKiller {
         }
     }
 }
-pub unsafe fn spawn_and_inject(proc: &str) -> anyhow::Result<[u8; 32]> {
+pub unsafe fn spawn_and_inject(proc: &str, sig: &str) -> anyhow::Result<[u8; 32]> {
     let pth = Path::new(proc);
     if !pth.is_file() {
         panic!("file does not exist");
@@ -142,17 +142,17 @@ pub unsafe fn spawn_and_inject(proc: &str) -> anyhow::Result<[u8; 32]> {
         };
         let game_ver = check_gd_ver(pth)?;
         println!("gamever = {game_ver}");
-        let sig_id = match &game_ver
-            .chars().collect::<Vec<char>>()[..]
-            // .next()
-            // .ok_or(anyhow::anyhow!("unable to check gd version"))?
-        {
-            ['4','.','3',..] => 4u32,
-            ['4',..] => 0u32,
-            ['3','.','6',..] => 2u32,
-            ['3',..] => 1u32,
-            _ => return Err(anyhow::anyhow!("invalid godot version")),
-        };
+        // let sig_id = match &game_ver
+        //     .chars().collect::<Vec<char>>()[..]
+        //     // .next()
+        //     // .ok_or(anyhow::anyhow!("unable to check gd version"))?
+        // {
+        //     ['4','.','3',..] => 4u32,
+        //     ['4',..] => 0u32,
+        //     ['3','.','6',..] => 2u32,
+        //     ['3',..] => 1u32,
+        //     _ => return Err(anyhow::anyhow!("invalid godot version")),
+        // };
 
         println!("injecting dll ({})", dll_loc);
         syrnge.inject(dll_loc)?;
@@ -160,8 +160,13 @@ pub unsafe fn spawn_and_inject(proc: &str) -> anyhow::Result<[u8; 32]> {
         println!("waiting until udp is ok ");
 
         let (_, addr) = sock.recv_from(&mut [0]).unwrap();
-        println!("using sig id {sig_id}");
-        sock.send_to(&sig_id.to_ne_bytes(), addr).unwrap();
+        // println!("using sig id {sig_id}");
+        let mut meow_sigger = sig.to_owned();
+        let meow_sigger = meow_sigger.as_bytes_mut();
+        let mut meower = Vec::from(meow_sigger.len().to_ne_bytes());
+        meower.append(&mut Vec::from(meow_sigger));
+
+        sock.send_to(meower.as_slice(), addr).unwrap();
         let mut error = [0u8; 4];
         sock.recv(&mut error)?;
         println!("errors -> {error:?}");

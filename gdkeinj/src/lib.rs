@@ -18,25 +18,16 @@ type open_and_parse_t = unsafe extern "fastcall" fn(*const i32, *const i32, *con
 static_detour! {
     pub static OpenAndParse:  unsafe extern "fastcall" fn(*const i32, *const i32, *const u8, bool) -> ();
 }
-
-const SIGS: [&str; 5] = [
-    // call into open_and_parse
-    "E8 ? ? ? ? 85 C0 0F 84 ?  ?  ? ? 49 8B 8C 24 ?  ?  ?  ?", // 4.x (4.2.1)
-    "E8 ? ? ? ? 89 44 24 50 83 7C 24 ? ?  0F 84 ?  ?  ?  ?  48 8B 44 24 ?", // 3.5.1
-    "E8 ? ? ? ? 89 44 24 50 83 7C 24 ? ?  0F 84 ?  ?  ?  ?  48 8B 44 24 ?", // 3.5.1
-    "E8 ? ? ? ? 8B D8 85 C0 0F 84 ? ? ?  ?  49 8B 04 24",      // 3.x
-    "E8 ? ? ? ? 48 8B 4C 24 ? 89 C5 48 85 C9",                 // 4.3
-];
 #[repr(u8)]
 #[derive(Debug)]
 enum SigErrors {
     NotFound,
 }
-fn find_sig_addr(sig_type: usize) -> Result<*const c_void, SigErrors> {
+fn find_sig_addr(sig: &str) -> Result<*const c_void, SigErrors> {
     let proc = Process::this_process();
     let modd = proc.get_base_module().unwrap();
 
-    let sig = SIGS.get(sig_type).ok_or(SigErrors::NotFound)?;
+    // let sig = SIGS.get(sig_type).ok_or(SigErrors::NotFound)?;
     let addr = modd
         .scan(sig)
         .map_err(|_| SigErrors::NotFound)?
@@ -63,11 +54,15 @@ pub fn main() {
     let buf = [];
     sock.send(&buf).ok();
 
-    let mut sig_type = [0; 4];
-    sock.recv(&mut sig_type).unwrap();
-    println!("received sig type: {:?}", sig_type);
-    let int_sig = u32::from_ne_bytes(sig_type);
-    let fn_ptr = find_sig_addr(int_sig as usize);
+    let mut capy = vec![0u8; 256];
+    sock.recv(&mut capy).unwrap();
+    let mut sizer = [0; 8];
+    sizer.copy_from_slice(&capy[..8]);
+    let sizer_usize = usize::from_ne_bytes(sizer);
+    let content = &capy[std::mem::size_of::<usize>()..];
+    let string_content = String::from_utf8_lossy(content);
+    let str_content = &string_content[..sizer_usize];
+    let fn_ptr = find_sig_addr(str_content);
     let fn_ptr = match fn_ptr {
         Ok(x) => x,
         Err(err) => {
