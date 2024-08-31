@@ -1,4 +1,5 @@
 {
+  "$schema": "https://github.com/tauri-apps/tauri/releases/download/tauri-build-v2.0.0-beta.13/schema.json",
   "productName": "gdke-gui",
   "version": "0.1.0",
   "identifier": "one.meli.gdke-gui",
@@ -30,5 +31,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  }
+  },
+  "plugins": {}
 }

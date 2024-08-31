@@ -1,6 +1,6 @@
 pub mod versioning;
 use std::{
-    ffi::{c_void, CStr, CString},
+    ffi::{c_void, CStr, CString, OsStr},
     io::{Read, Write},
     mem::{size_of, transmute},
     net::UdpSocket,
@@ -61,8 +61,8 @@ impl Drop for ProcKiller {
         }
     }
 }
-pub unsafe fn spawn_and_inject(proc: &str, sig: &str) -> anyhow::Result<[u8; 32]> {
-    let pth = Path::new(proc);
+pub unsafe fn spawn_and_inject<T: AsRef<OsStr>>(proc: T, sig: &str) -> anyhow::Result<[u8; 32]> {
+    let pth = Path::new(&proc);
     if !pth.is_file() {
         panic!("file does not exist");
     }

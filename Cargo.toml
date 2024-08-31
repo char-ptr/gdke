@@ -1,4 +1,4 @@
-workspace = { members = ["gdkeinj","gdke-gui/src-tauri"] }
+workspace = { members = ["gdkeinj", "gdke-gui/src-tauri"] }
 [package]
 name = "gdke"
 version = "0.2.2"
@@ -42,4 +42,3 @@ windows = { features = [
 ], version = "0.56" }
 dll-syringe = "*"
 poggers = { version = "*", git = "https://github.com/pozm/poggers.git" }
-tauri-plugin-dialog = "2.0.0-rc.2"

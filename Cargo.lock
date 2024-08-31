@@ -1373,7 +1373,6 @@ dependencies = [
  "dll-syringe",
  "poggers 1.2.1 (git+https://github.com/pozm/poggers.git)",
  "rust-embed",
- "tauri-plugin-dialog",
  "thiserror",
  "windows 0.56.0",
 ]
@@ -1382,6 +1381,7 @@ dependencies = [
 name = "gdke-gui"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "serde",
  "serde_json",
  "tauri",
