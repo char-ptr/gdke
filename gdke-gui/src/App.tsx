@@ -81,9 +81,10 @@ function App() {
     };
   }, []);
 
+  //captybara testing is real
   return (
     <div
-      className={`container dark:bg-black dark:text-white ${drag_over ? "border-dotted min-h-screen rounded-lg border-2 border-neutral-300 dark:border-neutral-700" : ""}`}
+      className={`h-full py-5 container dark:bg-black dark:text-white ${drag_over ? "border-dotted min-h-screen rounded-lg border-2 border-neutral-300 dark:border-neutral-700" : ""}`}
     >
       <Dialog open={show_pre_run} onOpenChange={(e) => set_show_pre_run(e)}>
         <DialogContent>
@@ -145,7 +146,7 @@ function App() {
         To get started drop your program below:
       </p>
 
-      <div className="flex items-center justify-center w-full">
+      <div className="mt-6 items-center justify-center w-full">
         <label
           htmlFor="dropzone-file"
           className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-neutral-50-50 dark:hover:bg-neutral-800 dark:bg-neutral-900 hover:bg-neutral-100 dark:border-neutral-600 dark:hover:border-neutral-500"
