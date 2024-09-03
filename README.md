@@ -1,8 +1,9 @@
 # gdke
 A external and gui based version of [godot-key-extract](https://github.com/pozm/godot-key-extract)
 # Images
-![image](https://user-images.githubusercontent.com/44528100/226689803-88b22777-f2ed-4b6f-ad57-4adfab1e9f7c.png)
-![image](https://user-images.githubusercontent.com/44528100/226690113-5d6210f2-f4b6-48e0-958d-20e74c75fc59.png)
+<img width="912" alt="Screenshot 2024-09-03 at 07 18 38" src="https://github.com/user-attachments/assets/f9dfb86f-5c40-4787-b81a-f61acaad74a9">
+<img width="912" alt="Screenshot 2024-09-03 at 07 18 29" src="https://github.com/user-attachments/assets/3c14010b-570e-4364-8baa-e4e5628152d1">
+<img width="912" alt="Screenshot 2024-09-03 at 07 18 25" src="https://github.com/user-attachments/assets/bb226238-41d2-4277-8e08-9efb0caac30d">
 
 ### How does this work?
 When you build a godot template with an encryption key set, the build tool (scons) will inline somewhere into the file. And so the key is in a random location pretty much every time you build.
