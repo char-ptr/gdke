@@ -39,7 +39,7 @@ function App() {
         set_outcome([true, out as string]);
         set_loading(false);
       },
-      (e) => {
+      (_) => {
         set_loading(false);
         set_outcome([false]);
       },

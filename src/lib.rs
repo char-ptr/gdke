@@ -66,7 +66,7 @@ pub unsafe fn spawn_and_inject<T: AsRef<OsStr>>(proc: T, sig: &str) -> anyhow::R
     if !pth.is_file() {
         panic!("file does not exist");
     }
-    let cmd_line_c = CString::new(proc).expect("invalid cstr");
+    let cmd_line_c = CString::new(proc.as_ref().as_encoded_bytes()).expect("invalid cstr");
     let start_up_info = STARTUPINFOA {
         wShowWindow: 0,
         ..Default::default()

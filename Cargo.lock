@@ -1382,6 +1382,7 @@ name = "gdke-gui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "gdke",
  "serde",
  "serde_json",
  "tauri",
